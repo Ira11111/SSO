@@ -4,6 +4,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -29,34 +30,35 @@ type DBConfig struct {
 }
 
 func MustLoad() *Config {
-	var res string
-	var dbPass string
-
 	if err := godotenv.Load(); err != nil {
 		panic("Error loading .env file")
 	}
 
+	var res string
 	res = os.Getenv("CONFIG_PATH")
 	if res == "" {
 		panic("CONFIG_PATH must be set")
 	}
+	return MustLoadByPath(res)
+}
 
-	dbPass = os.Getenv("DB_PASS")
-	if dbPass == "" {
-		panic("CONFIG_PATH must be set")
+func MustLoadByPath(path string) *Config {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		absPath, _ := filepath.Abs(path)
+		panic("CONFIG_PATH does not exist: " + absPath)
 	}
 
-	if _, err := os.Stat(res); os.IsNotExist(err) {
-		panic("CONFIG_PATH does not exist")
+	var dbPass string
+	dbPass = os.Getenv("DB_PASS")
+	if dbPass == "" {
+		panic("DB_PASS must be set")
 	}
 
 	var cfg Config
-
-	if err := cleanenv.ReadConfig(res, &cfg); err != nil {
+	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		panic(err)
 	}
 
 	cfg.DB.Password = os.Getenv("DB_PASS")
 	return &cfg
-
 }
