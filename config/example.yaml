@@ -1,0 +1,12 @@
+env: "local/develop/prod"
+
+db:
+  host: 127.0.0.1
+  port: 5432
+  user: postgres
+  database: postgres
+  ssl_mode: disable
+token_ttl: 30s
+grpc:
+  port: 44044
+  timeout: 1m
