@@ -24,8 +24,6 @@ const (
 func NewStorage(cnf *config.DBConfig) (*Storage, error) {
 	const op = "storage.postgres.NewStorage"
 
-	fmt.Println(cnf)
-	fmt.Printf("%T\n", cnf.Port)
 	db, err := sql.Open("postgres",
 		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 			cnf.Host,
@@ -38,11 +36,10 @@ func NewStorage(cnf *config.DBConfig) (*Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	// проыерка подключения к БД
+	// проверка подключения к БД
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	fmt.Println(db)
 	return &Storage{db}, nil
 }
 
