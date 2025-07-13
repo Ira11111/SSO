@@ -2,7 +2,7 @@ package tests
 
 import (
 	"AuthJWT/tests/suite"
-	sso "github.com/Ira11111/protos/gen/go/auth"
+	sso "github.com/Ira11111/protos/gen/go/sso"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"

@@ -3,7 +3,7 @@ package suite
 import (
 	"AuthJWT/internal/config"
 	"context"
-	sso "github.com/Ira11111/protos/gen/go/auth"
+	sso "github.com/Ira11111/protos/gen/go/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"net"

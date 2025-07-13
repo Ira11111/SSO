@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	auth "github.com/Ira11111/protos/gen/go/auth"
+	auth "github.com/Ira11111/protos/gen/go/sso"
 	v "github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
