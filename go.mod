@@ -3,7 +3,7 @@ module AuthJWT
 go 1.23.0
 
 require (
-	github.com/Ira11111/protos v1.0.0
+	github.com/Ira11111/protos/v3 v3.0.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/golang-jwt/jwt/v5 v5.2.2

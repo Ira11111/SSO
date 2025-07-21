@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	auth "github.com/Ira11111/protos/gen/go/sso"
+	auth "github.com/Ira11111/protos/v3/gen/go/sso"
 	v "github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,17 +17,16 @@ type Auth interface {
 		ctx context.Context,
 		email string,
 		password string,
-		appID int32,
-	) (string, error)
+	) (string, string, error)
 	RegisterNewUser(
 		ctx context.Context,
 		email string,
 		password string,
-	) (userID int64, err error)
-	IsAdmin(
+	) (int64, error)
+	RefreshToken(
 		ctx context.Context,
-		userId int64,
-	) (bool, error)
+		refreshToken string,
+	) (string, string, error)
 }
 
 type serverAPI struct {
@@ -40,33 +39,31 @@ func Register(gRPC *grpc.Server, a *service.Auth) {
 	auth.RegisterAuthServer(gRPC, &serverAPI{auth: a})
 }
 
-func (s *serverAPI) Login(ctx context.Context, req *auth.LoginRequest) (*auth.LoginResponse, error) {
-	if err := validateLoginRequest(req); err != nil {
-		return nil, status.Error(codes.InvalidArgument, "validation failed")
-	}
-	token, err := s.auth.Login(ctx, req.Email, req.Password, req.AppId)
+func (s *serverAPI) Login(ctx context.Context, req *auth.AuthRequest) (*auth.LoginResponse, error) {
+	//if err := validateRequest(req); err != nil {
+	//	return nil, status.Error(codes.InvalidArgument, "validation failed")
+	//}
+	accessToken, RefToken, err := s.auth.Login(ctx, req.Email, req.Password)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, service.ErrUserNotFound):
+		if errors.Is(err, service.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
-		case errors.Is(err, service.ErrInvalidCredentials):
-			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
-		case errors.Is(err, service.ErrInvalidAppId):
-			return nil, status.Error(codes.NotFound, "application not found")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
 		}
+		if errors.Is(err, service.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &auth.LoginResponse{
-		Token: token,
+		AccessToken:  accessToken,
+		RefreshToken: RefToken,
 	}, nil
 }
 
-func (s *serverAPI) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
+func (s *serverAPI) Register(ctx context.Context, req *auth.AuthRequest) (*auth.RegisterResponse, error) {
 	fmt.Println(req)
-	if err := validateRegisterRequest(req); err != nil {
+	if err := validateAuthRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "validation failed")
 	}
 	// сервисный слой
@@ -82,61 +79,38 @@ func (s *serverAPI) Register(ctx context.Context, req *auth.RegisterRequest) (*a
 	}, nil
 }
 
-func (s *serverAPI) IsAdmin(ctx context.Context, req *auth.IsAdminRequest) (*auth.IsAdminResponse, error) {
-
-	if err := validateIsAdminRequest(req); err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-	// сервисный слой
-	res, err := s.auth.IsAdmin(ctx, req.GetUserId())
+func (s *serverAPI) RefreshToken(ctx context.Context, req *auth.RefreshRequest) (*auth.RefreshResponse, error) {
+	accessToken, refToken, err := s.auth.RefreshToken(ctx, req.GetRefreshToken())
 	if err != nil {
-		if errors.Is(err, service.ErrUserNotFound) {
-			return nil, status.Error(codes.NotFound, "user not found")
+		if errors.Is(err, service.ErrInvalidToken) {
+			return nil, status.Error(codes.InvalidArgument, "invalid token")
+		}
+		if errors.Is(err, service.ErrTokenExpired) {
+			return nil, status.Error(codes.InvalidArgument, "token expired")
+		}
+		if errors.Is(err, service.ErrTokenRevoked) {
+			return nil, status.Error(codes.Unauthenticated, "token revoked")
 		}
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
-
-	return &auth.IsAdminResponse{
-		IsAdmin: res,
+	return &auth.RefreshResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refToken,
 	}, nil
 }
 
-type validLogin struct {
-	Email    string `validate:"email,required"`
-	Password string `validate:"required"`
-	AppId    int32  `validate:"gt=0,required"`
-}
-
-type validRegister struct {
+type validAuthRequest struct {
 	Email    string `validate:"email,required"`
 	Password string `validate:"gt=8,required"`
 }
 
-func validateLoginRequest(req *auth.LoginRequest) error {
-	valStruct := validLogin{
-		Email:    req.GetEmail(),
-		Password: req.GetPassword(),
-		AppId:    req.GetAppId(),
-	}
-	validator := v.New()
-	return validator.Struct(valStruct)
-}
-
-func validateRegisterRequest(req *auth.RegisterRequest) error {
-	valStruct := validRegister{
+func validateAuthRequest(req *auth.AuthRequest) error {
+	valStruct := validAuthRequest{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
 	}
 	validator := v.New()
 	if err := validator.Struct(valStruct); err != nil {
-		return status.Error(codes.InvalidArgument, err.Error())
-	}
-	return nil
-}
-
-func validateIsAdminRequest(req *auth.IsAdminRequest) error {
-	validator := v.New()
-	if err := validator.Var(req.GetUserId(), "required"); err != nil {
 		return status.Error(codes.InvalidArgument, err.Error())
 	}
 	return nil

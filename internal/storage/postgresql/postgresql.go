@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lib/pq"
+	"time"
 )
 
 type Storage struct {
@@ -68,7 +69,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
 	const op = "storage.postgres.User"
 
-	stmt, err := s.db.Prepare("SELECT id, email, password_hash FROM users WHERE email = $1")
+	stmt, err := s.db.Prepare("SELECT * FROM users WHERE email = $1")
 	if err != nil {
 		return models.User{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -87,43 +88,82 @@ func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
 	return user, nil
 }
 
-func (s *Storage) IsAdmin(ctx context.Context, uid int64) (bool, error) {
-	// TODO: переделать после нормализации БД
-	const op = "storage.postgres.IsAdmin"
-	stmt, err := s.db.Prepare("SELECT is_admin FROM users WHERE id = $1")
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
+func (s *Storage) SaveToken(ctx context.Context, token string, uid int64, exp time.Time) error {
+	const op = "storage.postgres.SaveToken"
 
-	row := stmt.QueryRowContext(ctx, uid)
-	var isAdmin bool
-	err = row.Scan(&isAdmin)
-
+	stmt, err := s.db.Prepare("INSERT INTO tokens (token, user_id, expires_at) VALUES ($1, $2, $3)")
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, storage.ErrUserNotFound
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == ErrUniqueViolation {
+			return storage.ErrTokenAlreadyExists
 		}
-		return false, fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
-
-	return isAdmin, nil
+	_, err = stmt.ExecContext(ctx, token, uid, exp)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }
 
-func (s *Storage) App(ctx context.Context, appId int32) (models.App, error) {
-	const op = "storage.postgres.App"
-	stmt, err := s.db.Prepare("SELECT * FROM applications WHERE id = $1")
+func (s *Storage) Token(ctx context.Context, token string) (models.Token, error) {
+	const op = "storage.postgres.Token"
+	stmt, err := s.db.Prepare("SELECT id, user_id, token, expires_at, revoked FROM tokens WHERE token = $1")
 	if err != nil {
-		return models.App{}, fmt.Errorf("%s: %w", op, err)
+		return models.Token{}, fmt.Errorf("%s: %w", op, err)
 	}
-	row := stmt.QueryRowContext(ctx, appId)
-	var app models.App
-	err = row.Scan(&app.Id, &app.Name, &app.Secret)
-
+	var modelToken models.Token
+	row := stmt.QueryRowContext(ctx, token)
+	err = row.Scan(&modelToken.Id, &modelToken.UserId, &modelToken.Token, &modelToken.ExpiresAt, &modelToken.Revoked)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.App{}, storage.ErrAppNotFound
+			return models.Token{}, storage.ErrTokenNotFound
 		}
-		return models.App{}, fmt.Errorf("%s: %w", op, err)
+		return models.Token{}, fmt.Errorf("%s: %w", op, err)
 	}
-	return app, nil
+	return modelToken, nil
+}
+func (s *Storage) UpdateToken(ctx context.Context, tokenHash string, uid int64, exp time.Time) error {
+	const op = "storage.postgres.UpdateToken"
+
+	stmt, err := s.db.Prepare("UPDATE tokens SET token = $1, expires_at = $2, revoked = $3 WHERE user_id = $4")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.ExecContext(ctx, tokenHash, exp, false, uid)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *Storage) RevokeToken(ctx context.Context, uid int64) error {
+	const op = "storage.postgres.RevokeToken"
+	stmt, err := s.db.Prepare("UPDATE tokens SET revoked  = $1 WHERE user_id = $2")
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.ExecContext(ctx, true, uid)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *Storage) CheckByUserId(ctx context.Context, uid int64) (bool, error) {
+	const op = "storage.postgres.CheckByUserId"
+
+	stmt, err := s.db.Prepare("SELECT EXISTS(SELECT 1 FROM tokens WHERE user_id = $1)")
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var exists bool
+	row := stmt.QueryRowContext(ctx, uid)
+	err = row.Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return exists, nil
 }

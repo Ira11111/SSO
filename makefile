@@ -6,9 +6,9 @@ build:
 	go build ./cmd/sso/main.go
 
 migrate_up:
-	goose -dir=/migrations postgres "host=localhost port=5432 user=postgres password=${PASS} dbname=postgres sslmode=disable" up
+	goose -dir=./migrations postgres "host=localhost port=5432 user=postgres password=${PASS} dbname=postgres sslmode=disable" up
 migrate_down:
-	goose -dir=/migrations postgres "host=localhost port=5432 user=postgres password=${PASS} dbname=postgres sslmode=disable" down
+	goose -dir=./migrations postgres "host=localhost port=5432 user=postgres password=${PASS} dbname=postgres sslmode=disable" down
 
 app_for_test:
 	CONFIG_PATH=./config/tests.yaml DB_PASS=TEST go run ./cmd/sso/main.go
@@ -21,3 +21,7 @@ migrate_test_up:
 	@goose -dir=./tests/migrations postgres "host=localhost port=5432 user=test password=TEST dbname=test sslmode=disable" up
 migrate_test_down:
 	@goose -dir=./tests/migrations postgres "host=localhost port=5432 user=test password=TEST dbname=test sslmode=disable" down
+
+keys:
+	openssl genpkey -algorithm RSA -out private_key_new.pem
+	openssl rsa -pubout -in private_key_new.pem -out public_key_new.pem

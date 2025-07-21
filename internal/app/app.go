@@ -15,7 +15,7 @@ type App struct {
 	AuthService *auth.Auth
 }
 
-func New(logger *slog.Logger, port int, st *config.DBConfig, token time.Duration) *App {
+func New(logger *slog.Logger, port int, st *config.DBConfig, accessTTl time.Duration, refTTL time.Duration, jwtKeyPath string) *App {
 	// Инициализация хранилища
 	storage, err := postgresql.NewStorage(st)
 	if err != nil {
@@ -23,7 +23,7 @@ func New(logger *slog.Logger, port int, st *config.DBConfig, token time.Duration
 	}
 	// инициализация сервисного слоя
 	fmt.Println("sso service")
-	authService := auth.New(logger, storage, storage, storage, token)
+	authService := auth.New(logger, storage, storage, accessTTl, refTTL, jwtKeyPath)
 
 	// инициализация обработчика
 	grpcApp := grpcapp.NewApp(logger, authService, port)

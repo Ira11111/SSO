@@ -23,7 +23,7 @@ func main() {
 	logger.Info("Start application", slog.Any("config", cnf))
 
 	// инициализация приложения
-	application := app.New(logger, cnf.GRPC.Port, &cnf.DB, cnf.TokenTTL)
+	application := app.New(logger, cnf.GRPC.Port, &cnf.DB, cnf.AccessTokenTTL, cnf.RefreshTokenTTL, cnf.JWTKeyPath)
 	// запустить grpc сервер
 	go application.GRPCServer.MustRun()
 

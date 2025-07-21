@@ -9,10 +9,12 @@ import (
 )
 
 type Config struct {
-	Env      string        `yaml:"env" env-default:"development"`
-	DB       DBConfig      `yaml:"db" env-required:"true"`
-	TokenTTL time.Duration `yaml:"token_ttl" env-required:"true"`
-	GRPC     GRPCConfig    `yaml:"grpc"`
+	Env             string        `yaml:"env" env-default:"development"`
+	DB              DBConfig      `yaml:"db" env-required:"true"`
+	AccessTokenTTL  time.Duration `yaml:"access_token_ttl" env-required:"true"`
+	RefreshTokenTTL time.Duration `yaml:"refresh_token_ttl" env-required:"true"`
+	GRPC            GRPCConfig    `yaml:"grpc"`
+	JWTKeyPath      string
 }
 
 type GRPCConfig struct {
@@ -48,10 +50,16 @@ func MustLoadByPath(path string) *Config {
 		panic("CONFIG_PATH does not exist: " + absPath)
 	}
 
-	var dbPass string
-	dbPass = os.Getenv("DB_PASS")
-	if dbPass == "" {
+	var dbPath string
+	dbPath = os.Getenv("DB_PASS")
+	if dbPath == "" {
 		panic("DB_PASS must be set")
+	}
+
+	var jwtKeyPath string
+	jwtKeyPath = os.Getenv("PRIVATE_KEY_PATH")
+	if jwtKeyPath == "" {
+		panic("PRIVATE_KEY_PATH must be set")
 	}
 
 	var cfg Config
@@ -59,6 +67,7 @@ func MustLoadByPath(path string) *Config {
 		panic(err)
 	}
 
+	cfg.JWTKeyPath = jwtKeyPath
 	cfg.DB.Password = os.Getenv("DB_PASS")
 	return &cfg
 }
