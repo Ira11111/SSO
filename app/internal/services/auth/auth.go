@@ -1,9 +1,9 @@
 package auth
 
 import (
-	"AuthJWT/internal/domain/models"
-	jwtlib "AuthJWT/internal/lib/jwt"
-	"AuthJWT/internal/storage"
+	models2 "AuthJWT/app/internal/domain/models"
+	jwtlib "AuthJWT/app/internal/lib/jwt"
+	"AuthJWT/app/internal/storage"
 	"context"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -39,26 +39,25 @@ type Auth struct {
 
 type UserProvider interface {
 	SaveUser(ctx context.Context, email string, passHash []byte) (int64, error)
-	User(ctx context.Context, email string) (models.User, error)
+	User(ctx context.Context, email string) (models2.User, error)
 }
 
 type TokenProvider interface {
 	SaveToken(ctx context.Context, token string, uid int64, exp time.Time) error
-	Token(ctx context.Context, token string) (models.Token, error)
+	Token(ctx context.Context, token string) (models2.Token, error)
 	UpdateToken(ctx context.Context, tokenHash string, uid int64, exp time.Time) error
 	RevokeToken(ctx context.Context, uid int64) error
 	CheckByUserId(ctx context.Context, uid int64) (bool, error)
 }
 
 // конструктор, создает экземпляр сервиса аунтефикации
-func New(log *slog.Logger, UserProvider UserProvider, TokenProvider TokenProvider, accessTTL time.Duration, refTTL time.Duration, jwtKeyPath string) *Auth {
+func New(log *slog.Logger, UserProvider UserProvider, TokenProvider TokenProvider, accessTTL time.Duration, refTTL time.Duration) *Auth {
 	return &Auth{
 		logger:        log,
 		userProvider:  UserProvider,
 		tokenProvider: TokenProvider,
 		accessTTL:     accessTTL,
 		refreshTTL:    refTTL,
-		jwtKey:        jwtKeyPath,
 	}
 }
 

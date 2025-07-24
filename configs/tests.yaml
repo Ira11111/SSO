@@ -4,9 +4,10 @@ db:
   host: 127.0.0.1
   port: 5432
   user: test
-  database: test
+  database: test_user_service
   ssl_mode: disable
-token_ttl: 30s
+access_token_ttl: 30s
+refresh_token_ttl: 1m
 grpc:
   port: 44044
   timeout: 1m

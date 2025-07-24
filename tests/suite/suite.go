@@ -1,12 +1,14 @@
 package suite
 
 import (
-	"AuthJWT/internal/config"
+	"AuthJWT/app/pkg/config"
 	"context"
-	sso "github.com/Ira11111/protos/gen/go/sso"
+	sso "github.com/Ira11111/protos/v3/gen/go/sso"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -26,7 +28,16 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()   // чтобы при файле теста правильно формировался стек вызовов
 	t.Parallel() // выполнение тестов параллельно
 
-	cfg := config.MustLoadByPath("../config/tests.yaml")
+	if err := godotenv.Load("../.env.test"); err != nil {
+		panic("Error loading .env.test file")
+	}
+	var res string
+	res = os.Getenv("CONFIG_PATH")
+	if res == "" {
+		panic("CONFIG_PATH must be set")
+	}
+
+	cfg := config.MustLoadByPath(res)
 
 	duration, err := time.ParseDuration(cfg.GRPC.Timeout)
 	if err != nil {

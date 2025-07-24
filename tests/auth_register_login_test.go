@@ -2,19 +2,20 @@ package tests
 
 import (
 	"AuthJWT/tests/suite"
-	sso "github.com/Ira11111/protos/gen/go/sso"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	sso "github.com/Ira11111/protos/v3/gen/go/sso"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"os"
 	"testing"
 	"time"
 )
 
 const (
-	emptyAppID     = 0
-	appId          = 1
-	appSecret      = "test-secret"
 	passDefaultLen = 10
 )
 
@@ -26,7 +27,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 
 	respReg, err := s.AuthClient.Register(
 		ctx,
-		&sso.RegisterRequest{
+		&sso.AuthRequest{
 			Email:    email,
 			Password: pass,
 		},
@@ -36,30 +37,36 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 
 	respLogin, err := s.AuthClient.Login(
 		ctx,
-		&sso.LoginRequest{
+		&sso.AuthRequest{
 			Email:    email,
 			Password: pass,
-			AppId:    appId,
 		},
 	)
 	require.NoError(t, err)
 	loginTime := time.Now()
 
-	assert.NotEmpty(t, respLogin.Token)
+	assert.NotEmpty(t, respLogin.AccessToken)
+	assert.NotEmpty(t, respLogin.RefreshToken)
 
-	tokenParsed, err := jwt.Parse(respLogin.Token, func(token *jwt.Token) (interface{}, error) {
-		return []byte(appSecret), nil
+	tokenParsed, err := jwt.Parse(respLogin.AccessToken, func(token *jwt.Token) (interface{}, error) {
+		block, _ := pem.Decode([]byte(os.Getenv("JWT_PUBLIC_KEY")))
+		if block == nil {
+			return nil, fmt.Errorf("failed to parse PEM block")
+		}
+		pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return pubKey, nil
 	})
 	require.NoError(t, err)
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	require.True(t, ok)
 
-	require.Equal(t, appId, int(claims["app_id"].(float64)))
-	require.Equal(t, email, claims["email"].(string))
 	require.Equal(t, respReg.GetUserId(), int64(claims["uid"].(float64)))
 
 	const delta = time.Second
-	assert.InDelta(t, loginTime.Add(s.Cfg.TokenTTL).Unix(), claims["exp"].(float64), float64(delta))
+	assert.InDelta(t, loginTime.Add(s.Cfg.AccessTokenTTL).Unix(), claims["exp"].(float64), float64(delta))
 
 }
 

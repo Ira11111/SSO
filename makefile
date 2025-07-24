@@ -1,27 +1,47 @@
+include .env
+include .env.test
 .PHONY: $(MAKECMDGOALS)
 
+
+COMPILED ?= false
+PRIVATE_KEY_PATH ?= ./private_key
+PUBLIC_KEY_PATH ?= ./public_key
+
 run:
-	go run ./cmd/sso/main.go
+ifeq ($(COMPILED), true)
+	ifeq ($(test -f ./bin/sso), 1)
+		./bin/sso
+	else
+		@echo "Binary not found"
+	endif
+else
+	go run ./app/cmd/sso/main.go
+endif
+
 build:
-	go build ./cmd/sso/main.go
+	go build -o ./bin/sso ./app/cmd/sso/main.go
 
 migrate_up:
-	goose -dir=./migrations postgres "host=localhost port=5432 user=postgres password=${PASS} dbname=postgres sslmode=disable" up
+	goose up
 migrate_down:
-	goose -dir=./migrations postgres "host=localhost port=5432 user=postgres password=${PASS} dbname=postgres sslmode=disable" down
+	goose down-to 00001
 
 app_for_test:
-	CONFIG_PATH=./config/tests.yaml DB_PASS=TEST go run ./cmd/sso/main.go
+ifeq ($(COMPILED), true)
+	CONFIG_PATH=./configs/tests.yaml DB_PASS=TEST ./bin/sso
+else
+	CONFIG_PATH=./configs/tests.yaml DB_PASS=TEST go run ./app/cmd/sso/main.go
+endif
 
 test: migrate_test_up
-	DB_PASS=TEST go test -v ./tests
+	go test -v ./tests
 	go clean -testcache
 
 migrate_test_up:
-	@goose -dir=./tests/migrations postgres "host=localhost port=5432 user=test password=TEST dbname=test sslmode=disable" up
+	goose -env ".env.test" up
 migrate_test_down:
-	@goose -dir=./tests/migrations postgres "host=localhost port=5432 user=test password=TEST dbname=test sslmode=disable" down
+	goose -env ".env.test" down-to 00001
 
 keys:
-	openssl genpkey -algorithm RSA -out private_key_new.pem
-	openssl rsa -pubout -in private_key_new.pem -out public_key_new.pem
+	openssl genpkey -algorithm RSA -out ${PRIVATE_KEY_PATH}.pem
+	openssl rsa -pubout -in ${PRIVATE_KEY_PATH}.pem -out ${PUBLIC_KEY_PATH}.pem

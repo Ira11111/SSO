@@ -14,7 +14,6 @@ type Config struct {
 	AccessTokenTTL  time.Duration `yaml:"access_token_ttl" env-required:"true"`
 	RefreshTokenTTL time.Duration `yaml:"refresh_token_ttl" env-required:"true"`
 	GRPC            GRPCConfig    `yaml:"grpc"`
-	JWTKeyPath      string
 }
 
 type GRPCConfig struct {
@@ -56,18 +55,11 @@ func MustLoadByPath(path string) *Config {
 		panic("DB_PASS must be set")
 	}
 
-	var jwtKeyPath string
-	jwtKeyPath = os.Getenv("PRIVATE_KEY_PATH")
-	if jwtKeyPath == "" {
-		panic("PRIVATE_KEY_PATH must be set")
-	}
-
 	var cfg Config
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		panic(err)
 	}
 
-	cfg.JWTKeyPath = jwtKeyPath
 	cfg.DB.Password = os.Getenv("DB_PASS")
 	return &cfg
 }

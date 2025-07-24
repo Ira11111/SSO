@@ -6,7 +6,8 @@ db:
   user: postgres
   database: postgres
   ssl_mode: disable
-token_ttl: 30s
+access_token_ttl: 30s
+refresh_token_ttl: 24h
 grpc:
   port: 44044
   timeout: 1m

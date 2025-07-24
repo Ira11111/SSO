@@ -1,10 +1,10 @@
 package app
 
 import (
-	grpcapp "AuthJWT/internal/app/grpc"
-	"AuthJWT/internal/config"
-	"AuthJWT/internal/services/auth"
-	"AuthJWT/internal/storage/postgresql"
+	"AuthJWT/app/internal/app/grpc"
+	"AuthJWT/app/internal/services/auth"
+	"AuthJWT/app/internal/storage/postgresql"
+	"AuthJWT/app/pkg/config"
 	"fmt"
 	"log/slog"
 	"time"
@@ -15,7 +15,7 @@ type App struct {
 	AuthService *auth.Auth
 }
 
-func New(logger *slog.Logger, port int, st *config.DBConfig, accessTTl time.Duration, refTTL time.Duration, jwtKeyPath string) *App {
+func New(logger *slog.Logger, port int, st *config.DBConfig, accessTTl time.Duration, refTTL time.Duration) *App {
 	// Инициализация хранилища
 	storage, err := postgresql.NewStorage(st)
 	if err != nil {
@@ -23,9 +23,7 @@ func New(logger *slog.Logger, port int, st *config.DBConfig, accessTTl time.Dura
 	}
 	// инициализация сервисного слоя
 	fmt.Println("sso service")
-	authService := auth.New(logger, storage, storage, accessTTl, refTTL, jwtKeyPath)
-
-	// инициализация обработчика
+	authService := auth.New(logger, storage, storage, accessTTl, refTTL) // инициализация обработчика
 	grpcApp := grpcapp.NewApp(logger, authService, port)
 	return &App{
 		grpcApp,

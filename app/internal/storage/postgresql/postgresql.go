@@ -1,9 +1,9 @@
 package postgresql
 
 import (
-	"AuthJWT/internal/config"
-	"AuthJWT/internal/domain/models"
-	"AuthJWT/internal/storage"
+	models2 "AuthJWT/app/internal/domain/models"
+	"AuthJWT/app/internal/storage"
+	"AuthJWT/app/pkg/config"
 	"context"
 	"database/sql"
 	"errors"
@@ -66,23 +66,23 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	return id, nil
 }
 
-func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
+func (s *Storage) User(ctx context.Context, email string) (models2.User, error) {
 	const op = "storage.postgres.User"
 
 	stmt, err := s.db.Prepare("SELECT * FROM users WHERE email = $1")
 	if err != nil {
-		return models.User{}, fmt.Errorf("%s: %w", op, err)
+		return models2.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	row := stmt.QueryRowContext(ctx, email)
-	var user models.User
+	var user models2.User
 	err = row.Scan(&user.Id, &user.Email, &user.PasswordHash)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.User{}, storage.ErrUserNotFound
+			return models2.User{}, storage.ErrUserNotFound
 		}
-		return models.User{}, fmt.Errorf("%s: %w", op, err)
+		return models2.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return user, nil
@@ -106,20 +106,20 @@ func (s *Storage) SaveToken(ctx context.Context, token string, uid int64, exp ti
 	return nil
 }
 
-func (s *Storage) Token(ctx context.Context, token string) (models.Token, error) {
+func (s *Storage) Token(ctx context.Context, token string) (models2.Token, error) {
 	const op = "storage.postgres.Token"
 	stmt, err := s.db.Prepare("SELECT id, user_id, token, expires_at, revoked FROM tokens WHERE token = $1")
 	if err != nil {
-		return models.Token{}, fmt.Errorf("%s: %w", op, err)
+		return models2.Token{}, fmt.Errorf("%s: %w", op, err)
 	}
-	var modelToken models.Token
+	var modelToken models2.Token
 	row := stmt.QueryRowContext(ctx, token)
 	err = row.Scan(&modelToken.Id, &modelToken.UserId, &modelToken.Token, &modelToken.ExpiresAt, &modelToken.Revoked)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.Token{}, storage.ErrTokenNotFound
+			return models2.Token{}, storage.ErrTokenNotFound
 		}
-		return models.Token{}, fmt.Errorf("%s: %w", op, err)
+		return models2.Token{}, fmt.Errorf("%s: %w", op, err)
 	}
 	return modelToken, nil
 }

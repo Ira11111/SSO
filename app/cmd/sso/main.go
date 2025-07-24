@@ -1,16 +1,13 @@
 package main
 
 import (
-	"AuthJWT/internal/app"
-	"AuthJWT/internal/config"
+	"AuthJWT/app/internal/app"
+	"AuthJWT/app/pkg/config"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 )
-
-// TODO: переписать валидаторы с использованием интерфэйсов и сделать пакет validate, добавить middleware для валидации
-// TODO: сделать красивый логгер
 
 func main() {
 	// инициализировать объект конфига
@@ -20,10 +17,10 @@ func main() {
 	if logger == nil {
 		panic("logger is nil, check your configuration")
 	}
-	logger.Info("Start application", slog.Any("config", cnf))
+	logger.Info("Start application", slog.Any("configs", cnf))
 
 	// инициализация приложения
-	application := app.New(logger, cnf.GRPC.Port, &cnf.DB, cnf.AccessTokenTTL, cnf.RefreshTokenTTL, cnf.JWTKeyPath)
+	application := app.New(logger, cnf.GRPC.Port, &cnf.DB, cnf.AccessTokenTTL, cnf.RefreshTokenTTL)
 	// запустить grpc сервер
 	go application.GRPCServer.MustRun()
 
