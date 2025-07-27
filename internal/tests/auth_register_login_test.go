@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"AuthJWT/tests/suite"
+	"AuthJWT/internal/tests/suite"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"

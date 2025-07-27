@@ -1,10 +1,10 @@
 package app
 
 import (
-	"AuthJWT/app/internal/app/grpc"
-	"AuthJWT/app/internal/services/auth"
-	"AuthJWT/app/internal/storage/postgresql"
-	"AuthJWT/app/pkg/config"
+	"AuthJWT/internal/app/grpc"
+	"AuthJWT/internal/config"
+	"AuthJWT/internal/services/auth"
+	"AuthJWT/internal/storage/postgresql"
 	"fmt"
 	"log/slog"
 	"time"

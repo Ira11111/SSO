@@ -1,9 +1,9 @@
 package auth
 
 import (
-	models2 "AuthJWT/app/internal/domain/models"
-	jwtlib "AuthJWT/app/internal/lib/jwt"
-	"AuthJWT/app/internal/storage"
+	"AuthJWT/internal/domain/models"
+	jwtlib "AuthJWT/internal/lib/jwt"
+	"AuthJWT/internal/storage"
 	"context"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -39,12 +39,12 @@ type Auth struct {
 
 type UserProvider interface {
 	SaveUser(ctx context.Context, email string, passHash []byte) (int64, error)
-	User(ctx context.Context, email string) (models2.User, error)
+	User(ctx context.Context, email string) (models.User, error)
 }
 
 type TokenProvider interface {
 	SaveToken(ctx context.Context, token string, uid int64, exp time.Time) error
-	Token(ctx context.Context, token string) (models2.Token, error)
+	Token(ctx context.Context, token string) (models.Token, error)
 	UpdateToken(ctx context.Context, tokenHash string, uid int64, exp time.Time) error
 	RevokeToken(ctx context.Context, uid int64) error
 	CheckByUserId(ctx context.Context, uid int64) (bool, error)

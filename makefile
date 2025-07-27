@@ -30,11 +30,11 @@ app_for_test:
 ifeq ($(COMPILED), true)
 	CONFIG_PATH=./configs/tests.yaml DB_PASS=TEST ./bin/sso
 else
-	CONFIG_PATH=./configs/tests.yaml DB_PASS=TEST go run ./app/cmd/sso/main.go
+	CONFIG_PATH=./configs/tests.yaml DB_PASS=TEST go run ./cmd/sso/main.go
 endif
 
 test: migrate_test_up
-	go test -v ./tests
+	go test -v ./internal/tests
 	go clean -testcache
 
 migrate_test_up:

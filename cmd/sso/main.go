@@ -1,8 +1,8 @@
 package main
 
 import (
-	"AuthJWT/app/internal/app"
-	"AuthJWT/app/pkg/config"
+	"AuthJWT/internal/app"
+	"AuthJWT/internal/config"
 	"log/slog"
 	"os"
 	"os/signal"

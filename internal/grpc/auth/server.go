@@ -1,7 +1,7 @@
 package auth
 
 import (
-	service "AuthJWT/app/internal/services/auth"
+	service "AuthJWT/internal/services/auth"
 	"context"
 	"errors"
 	"fmt"
