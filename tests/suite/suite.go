@@ -3,7 +3,7 @@ package suite
 import (
 	"AuthJWT/internal/config"
 	"context"
-	sso "github.com/Ira11111/protos/v3/gen/go/sso"
+	sso "github.com/Ira11111/protos/v4/gen/go/sso"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -28,7 +28,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()   // чтобы при файле теста правильно формировался стек вызовов
 	t.Parallel() // выполнение тестов параллельно
 
-	if err := godotenv.Load("../../.env.test"); err != nil {
+	if err := godotenv.Load("../.env.test"); err != nil {
 		panic("Error loading .env.test file")
 	}
 	var res string

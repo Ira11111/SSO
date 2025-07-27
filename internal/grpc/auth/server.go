@@ -2,11 +2,10 @@ package auth
 
 import (
 	service "AuthJWT/internal/services/auth"
+	v "AuthJWT/internal/validator"
 	"context"
 	"errors"
-	"fmt"
-	auth "github.com/Ira11111/protos/v3/gen/go/sso"
-	v "github.com/go-playground/validator/v10"
+	auth "github.com/Ira11111/protos/v4/gen/go/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,11 +21,17 @@ type Auth interface {
 		ctx context.Context,
 		email string,
 		password string,
+		role string,
 	) (int64, error)
 	RefreshToken(
 		ctx context.Context,
 		refreshToken string,
 	) (string, string, error)
+	AddRole(
+		ctx context.Context,
+		role string,
+		uid int64,
+	) ([]string, error)
 }
 
 type serverAPI struct {
@@ -39,10 +44,10 @@ func Register(gRPC *grpc.Server, a *service.Auth) {
 	auth.RegisterAuthServer(gRPC, &serverAPI{auth: a})
 }
 
-func (s *serverAPI) Login(ctx context.Context, req *auth.AuthRequest) (*auth.LoginResponse, error) {
-	//if err := validateRequest(req); err != nil {
-	//	return nil, status.Error(codes.InvalidArgument, "validation failed")
-	//}
+func (s *serverAPI) Login(ctx context.Context, req *auth.LoginRequest) (*auth.LoginResponse, error) {
+	if err := v.ValidateLoginRequest(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, "validation failed")
+	}
 	accessToken, RefToken, err := s.auth.Login(ctx, req.Email, req.Password)
 
 	if err != nil {
@@ -61,19 +66,19 @@ func (s *serverAPI) Login(ctx context.Context, req *auth.AuthRequest) (*auth.Log
 	}, nil
 }
 
-func (s *serverAPI) Register(ctx context.Context, req *auth.AuthRequest) (*auth.RegisterResponse, error) {
-	fmt.Println(req)
-	if err := validateAuthRequest(req); err != nil {
+func (s *serverAPI) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
+	if err := v.ValidateRegisterRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "validation failed")
 	}
 	// сервисный слой
-	userId, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
+	userId, err := s.auth.RegisterNewUser(ctx, req.Email, req.Password, req.Role)
 	if err != nil {
 		if errors.Is(err, service.ErrUserAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
 		}
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
+
 	return &auth.RegisterResponse{
 		UserId: userId,
 	}, nil
@@ -99,19 +104,26 @@ func (s *serverAPI) RefreshToken(ctx context.Context, req *auth.RefreshRequest) 
 	}, nil
 }
 
-type validAuthRequest struct {
-	Email    string `validate:"email,required"`
-	Password string `validate:"gt=8,required"`
-}
-
-func validateAuthRequest(req *auth.AuthRequest) error {
-	valStruct := validAuthRequest{
-		Email:    req.GetEmail(),
-		Password: req.GetPassword(),
+func (s *serverAPI) AddRole(ctx context.Context, req *auth.AddRoleRequest) (*auth.AddRoleResponse, error) {
+	if err := v.ValidateAddRoleRequest(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, "validation failed")
 	}
-	validator := v.New()
-	if err := validator.Struct(valStruct); err != nil {
-		return status.Error(codes.InvalidArgument, err.Error())
+	//ПАРСИНГ ТОКЕНА
+	var uid int64 = 1
+	roles, err := s.auth.AddRole(ctx, req.Role, uid)
+	if err != nil {
+		if errors.Is(err, service.ErrRoleAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, "role already exists")
+		}
+		if errors.Is(err, service.ErrUserRolesNotFound) {
+			return nil, status.Error(codes.NotFound, "user roles not found")
+		}
+		if errors.Is(err, service.ErrRoleDoesNotExist) {
+			return nil, status.Error(codes.NotFound, "role does not exist")
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
-	return nil
+	return &auth.AddRoleResponse{
+		Roles: roles,
+	}, nil
 }

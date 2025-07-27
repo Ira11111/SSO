@@ -26,19 +26,23 @@ var (
 	ErrTokenExpired       = errors.New("token expired")
 	ErrTokenRevoked       = errors.New("token revoked")
 	ErrInvalidToken       = errors.New("invalid token")
+	ErrRoleDoesNotExist   = errors.New("role does not exists")
+	ErrRoleAlreadyExists  = errors.New("role already exists")
+	ErrUserRolesNotFound  = errors.New("users roles not found")
 )
 
 type Auth struct {
 	logger        *slog.Logger
 	userProvider  UserProvider
 	tokenProvider TokenProvider
+	roleProvider  RoleProvider
 	accessTTL     time.Duration
 	refreshTTL    time.Duration
 	jwtKey        string
 }
 
 type UserProvider interface {
-	SaveUser(ctx context.Context, email string, passHash []byte) (int64, error)
+	SaveUser(ctx context.Context, email string, passHash []byte, role string) (int64, error)
 	User(ctx context.Context, email string) (models.User, error)
 }
 
@@ -49,13 +53,18 @@ type TokenProvider interface {
 	RevokeToken(ctx context.Context, uid int64) error
 	CheckByUserId(ctx context.Context, uid int64) (bool, error)
 }
+type RoleProvider interface {
+	AddRole(ctx context.Context, uid int64, role string) error
+	UserRoles(ctx context.Context, uid int64) ([]string, error)
+}
 
 // конструктор, создает экземпляр сервиса аунтефикации
-func New(log *slog.Logger, UserProvider UserProvider, TokenProvider TokenProvider, accessTTL time.Duration, refTTL time.Duration) *Auth {
+func New(log *slog.Logger, UserProvider UserProvider, TokenProvider TokenProvider, RoleProvider RoleProvider, accessTTL time.Duration, refTTL time.Duration) *Auth {
 	return &Auth{
 		logger:        log,
 		userProvider:  UserProvider,
 		tokenProvider: TokenProvider,
+		roleProvider:  RoleProvider,
 		accessTTL:     accessTTL,
 		refreshTTL:    refTTL,
 	}
@@ -113,10 +122,19 @@ func (a *Auth) Login(ctx context.Context, email string, password string) (string
 		log.Warn("failed to get key", op, err.Error())
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
+
+	log.Info("trying to find available roles")
+	roles, err := a.roleProvider.UserRoles(ctx, user.Id)
+	if err != nil {
+		log.Warn("failed to find available roles", op, err.Error())
+		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+	log.Info("found available roles")
+
 	log.Info("user successfully logged in")
 	// создаем токен
 	log.Info("trying to create token")
-	accessToken, refToken, err := jwtlib.NewTokens(user.Id, a.accessTTL, key)
+	accessToken, refToken, err := jwtlib.NewTokens(user.Id, roles, a.accessTTL, key)
 	if err != nil {
 		log.Warn("failed to generate token", op, err.Error())
 		return "", "", fmt.Errorf("%s: %w", op, err)
@@ -151,6 +169,7 @@ func (a *Auth) RegisterNewUser(
 	ctx context.Context,
 	email string,
 	password string,
+	role string,
 ) (int64, error) {
 	const op = "sso.RegisterNewUser"
 	log := a.logger.With(slog.String("op", op))
@@ -165,7 +184,7 @@ func (a *Auth) RegisterNewUser(
 	}
 
 	// сохранение пользователя в базу данных
-	uid, err := a.userProvider.SaveUser(ctx, email, passHash)
+	uid, err := a.userProvider.SaveUser(ctx, email, passHash, role)
 	if err != nil {
 		log.Error("failed to save user", err.Error())
 		if errors.Is(err, storage.ErrUserAlreadyExists) {
@@ -174,6 +193,7 @@ func (a *Auth) RegisterNewUser(
 		}
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
+
 	log.Info("successfully register user", slog.String("op", op))
 	return uid, nil
 }
@@ -199,7 +219,6 @@ func (a *Auth) RefreshToken(ctx context.Context, refreshToken string) (string, s
 	// валидируем токен
 	logger.Info("trying to validate refresh token")
 
-	fmt.Println(time.Now().UTC(), token.ExpiresAt.UTC())
 	if time.Now().UTC().After(token.ExpiresAt.UTC()) {
 		logger.Warn("refresh token expired")
 		return "", "", ErrTokenExpired
@@ -217,7 +236,19 @@ func (a *Auth) RefreshToken(ctx context.Context, refreshToken string) (string, s
 		logger.Warn("failed to get private key", err.Error())
 		return "", "", fmt.Errorf("%s: %w", op, err)
 	}
-	newAccessToken, newRefToken, err := jwtlib.NewTokens(token.UserId, a.accessTTL, key)
+
+	// Найти роли
+	logger.Info("trying to find available roles")
+	roles, err := a.roleProvider.UserRoles(ctx, token.UserId)
+	if err != nil {
+		logger.Warn("failed to find available roles", err.Error())
+		return "", "", fmt.Errorf("%s: %w", op, err)
+	}
+	logger.Info("successfully find roles")
+
+	// генерация токенов
+	logger.Info("trying to create token")
+	newAccessToken, newRefToken, err := jwtlib.NewTokens(token.UserId, roles, a.accessTTL, key)
 	if err != nil {
 		logger.Error("failed to generate new access token", err.Error())
 		return "", "", fmt.Errorf("%s: %w", op, err)
@@ -233,4 +264,35 @@ func (a *Auth) RefreshToken(ctx context.Context, refreshToken string) (string, s
 
 	// вернуть результат
 	return newAccessToken, newRefToken, nil
+}
+
+func (a *Auth) AddRole(ctx context.Context, role string, uid int64) ([]string, error) {
+	const op = "sso.AddRole"
+	logger := a.logger.With(slog.String("op", op))
+	logger.Info("trying to add role")
+	err := a.roleProvider.AddRole(ctx, uid, role)
+	if err != nil {
+		logger.Error("failed to add role", err.Error())
+		if errors.Is(err, storage.ErrRoleAlreadyExists) {
+			return nil, ErrRoleAlreadyExists
+		}
+		if errors.Is(err, storage.ErrRoleDoesNotExist) {
+			return nil, ErrRoleDoesNotExist
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	logger.Info("successfully add role")
+	logger.Info("trying to find available roles")
+
+	roles, err := a.roleProvider.UserRoles(ctx, uid)
+	if err != nil {
+		if errors.Is(err, storage.ErrRolesNotFound) {
+			return nil, ErrUserRolesNotFound
+		}
+		logger.Error("failed to find available roles", err.Error())
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	logger.Info("successfully find available roles")
+	return roles, nil
+
 }

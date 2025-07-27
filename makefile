@@ -15,11 +15,11 @@ ifeq ($(COMPILED), true)
 		@echo "Binary not found"
 	endif
 else
-	go run ./app/cmd/sso/main.go
+	go run ./cmd/sso/main.go
 endif
 
 build:
-	go build -o ./bin/sso ./app/cmd/sso/main.go
+	go build -o ./bin/sso ./cmd/sso/main.go
 
 migrate_up:
 	goose up
@@ -34,7 +34,7 @@ else
 endif
 
 test: migrate_test_up
-	go test -v ./internal/tests
+	go test -v ./tests
 	go clean -testcache
 
 migrate_test_up:

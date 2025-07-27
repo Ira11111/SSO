@@ -9,12 +9,13 @@ import (
 )
 
 // функция для генерации токена доступа
-func NewTokens(id int64, accessDuration time.Duration, key *rsa.PrivateKey) (string, string, error) {
+func NewTokens(id int64, roles []string, accessDuration time.Duration, key *rsa.PrivateKey) (string, string, error) {
 	accessToken := jwt.New(jwt.SigningMethodRS512)
 	accessClaims := accessToken.Claims.(jwt.MapClaims)
 
 	// сохраняем нужные данные
 	accessClaims["uid"] = id
+	accessClaims["roles"] = roles
 	accessClaims["exp"] = time.Now().Add(accessDuration).Unix()
 
 	accessTokenString, err := accessToken.SignedString(key)

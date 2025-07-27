@@ -1,11 +1,11 @@
 package tests
 
 import (
-	"AuthJWT/internal/tests/suite"
+	"AuthJWT/tests/suite"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	sso "github.com/Ira11111/protos/v3/gen/go/sso"
+	sso "github.com/Ira11111/protos/v4/gen/go/sso"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +17,7 @@ import (
 
 const (
 	passDefaultLen = 10
+	defaultRole    = "customer"
 )
 
 func TestRegisterLogin_Login_HappyPath(t *testing.T) {
@@ -27,9 +28,10 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 
 	respReg, err := s.AuthClient.Register(
 		ctx,
-		&sso.AuthRequest{
+		&sso.RegisterRequest{
 			Email:    email,
 			Password: pass,
+			Role:     defaultRole,
 		},
 	)
 	require.NoError(t, err)
@@ -37,7 +39,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 
 	respLogin, err := s.AuthClient.Login(
 		ctx,
-		&sso.AuthRequest{
+		&sso.LoginRequest{
 			Email:    email,
 			Password: pass,
 		},
@@ -64,6 +66,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 	require.True(t, ok)
 
 	require.Equal(t, respReg.GetUserId(), int64(claims["uid"].(float64)))
+	fmt.Println(claims["roles"])
 
 	const delta = time.Second
 	assert.InDelta(t, loginTime.Add(s.Cfg.AccessTokenTTL).Unix(), claims["exp"].(float64), float64(delta))

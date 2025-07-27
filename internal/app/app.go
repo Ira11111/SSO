@@ -23,7 +23,7 @@ func New(logger *slog.Logger, port int, st *config.DBConfig, accessTTl time.Dura
 	}
 	// инициализация сервисного слоя
 	fmt.Println("sso service")
-	authService := auth.New(logger, storage, storage, accessTTl, refTTL) // инициализация обработчика
+	authService := auth.New(logger, storage, storage, storage, accessTTl, refTTL) // инициализация обработчика
 	grpcApp := grpcapp.NewApp(logger, authService, port)
 	return &App{
 		grpcApp,
