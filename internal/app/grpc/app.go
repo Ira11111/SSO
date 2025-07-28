@@ -4,6 +4,7 @@ import (
 	authGRPC "AuthJWT/internal/grpc/auth"
 	"AuthJWT/internal/services/auth"
 	"fmt"
+	i "github.com/Ira11111/go-grpc-interceptors/interceptors"
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"
@@ -15,8 +16,11 @@ type App struct {
 	port   int
 }
 
-func NewApp(logger *slog.Logger, authService *auth.Auth, port int) *App {
-	gRPCServer := grpc.NewServer()
+func NewApp(logger *slog.Logger, authService *auth.Auth, port int, key string) *App {
+	interceptor := i.NewAuthInterceptor(key)
+	gRPCServer := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptor.JWTClaims()),
+	)
 	authGRPC.Register(gRPCServer, authService)
 	return &App{
 		logger: logger,

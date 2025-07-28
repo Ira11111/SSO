@@ -5,7 +5,6 @@ import (
 	"AuthJWT/internal/config"
 	"AuthJWT/internal/services/auth"
 	"AuthJWT/internal/storage/postgresql"
-	"fmt"
 	"log/slog"
 	"time"
 )
@@ -15,16 +14,15 @@ type App struct {
 	AuthService *auth.Auth
 }
 
-func New(logger *slog.Logger, port int, st *config.DBConfig, accessTTl time.Duration, refTTL time.Duration) *App {
+func New(logger *slog.Logger, g *config.GRPCConfig, st *config.DBConfig, accessTTl time.Duration, refTTL time.Duration) *App {
 	// Инициализация хранилища
 	storage, err := postgresql.NewStorage(st)
 	if err != nil {
 		panic("failed to connect to database: " + err.Error())
 	}
 	// инициализация сервисного слоя
-	fmt.Println("sso service")
 	authService := auth.New(logger, storage, storage, storage, accessTTl, refTTL) // инициализация обработчика
-	grpcApp := grpcapp.NewApp(logger, authService, port)
+	grpcApp := grpcapp.NewApp(logger, authService, g.Port, g.PublicKey)
 	return &App{
 		grpcApp,
 		authService,

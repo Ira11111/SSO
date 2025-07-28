@@ -17,8 +17,9 @@ type Config struct {
 }
 
 type GRPCConfig struct {
-	Port    int    `yaml:"port"`
-	Timeout string `yaml:"timeout"`
+	Port      int    `yaml:"port"`
+	Timeout   string `yaml:"timeout"`
+	PublicKey string
 }
 
 type DBConfig struct {
@@ -55,11 +56,19 @@ func MustLoadByPath(path string) *Config {
 		panic("DB_PASS must be set")
 	}
 
+	var jwtKey string
+	jwtKey = os.Getenv("JWT_PUBLIC_KEY")
+	if jwtKey == "" {
+		panic("JWT_PUBLIC_KEY must be set")
+	}
+
 	var cfg Config
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		panic(err)
 	}
 
-	cfg.DB.Password = os.Getenv("DB_PASS")
+	cfg.DB.Password = dbPath
+	cfg.GRPC.PublicKey = jwtKey
+
 	return &cfg
 }

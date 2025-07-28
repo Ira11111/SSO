@@ -30,7 +30,6 @@ type Auth interface {
 	AddRole(
 		ctx context.Context,
 		role string,
-		uid int64,
 	) ([]string, error)
 }
 
@@ -85,7 +84,7 @@ func (s *serverAPI) Register(ctx context.Context, req *auth.RegisterRequest) (*a
 }
 
 func (s *serverAPI) RefreshToken(ctx context.Context, req *auth.RefreshRequest) (*auth.RefreshResponse, error) {
-	accessToken, refToken, err := s.auth.RefreshToken(ctx, req.GetRefreshToken())
+	accessToken, refToken, err := s.auth.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidToken) {
 			return nil, status.Error(codes.InvalidArgument, "invalid token")
@@ -108,9 +107,8 @@ func (s *serverAPI) AddRole(ctx context.Context, req *auth.AddRoleRequest) (*aut
 	if err := v.ValidateAddRoleRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "validation failed")
 	}
-	//ПАРСИНГ ТОКЕНА
-	var uid int64 = 1
-	roles, err := s.auth.AddRole(ctx, req.Role, uid)
+
+	roles, err := s.auth.AddRole(ctx, req.Role)
 	if err != nil {
 		if errors.Is(err, service.ErrRoleAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, "role already exists")

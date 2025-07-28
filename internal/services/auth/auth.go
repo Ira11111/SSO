@@ -203,7 +203,9 @@ func (a *Auth) RefreshToken(ctx context.Context, refreshToken string) (string, s
 	logger := a.logger.With(slog.String("op", op))
 	logger.Info("trying to refresh token")
 
-	// 1. найти токен в БД
+	// находим пользователя в БД
+
+	//1. найти токен в БД
 	logger.Info("trying to find refresh token")
 	tokenHash := hashToken(refreshToken)
 	token, err := a.tokenProvider.Token(ctx, tokenHash)
@@ -266,10 +268,12 @@ func (a *Auth) RefreshToken(ctx context.Context, refreshToken string) (string, s
 	return newAccessToken, newRefToken, nil
 }
 
-func (a *Auth) AddRole(ctx context.Context, role string, uid int64) ([]string, error) {
+func (a *Auth) AddRole(ctx context.Context, role string) ([]string, error) {
 	const op = "sso.AddRole"
 	logger := a.logger.With(slog.String("op", op))
 	logger.Info("trying to add role")
+
+	uid := ctx.Value("userId").(int64)
 	err := a.roleProvider.AddRole(ctx, uid, role)
 	if err != nil {
 		logger.Error("failed to add role", err.Error())
