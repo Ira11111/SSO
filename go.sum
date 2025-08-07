@@ -26,6 +26,8 @@ github.com/Ira11111/go-grpc-interceptors v1.3.0 h1:c5cGNENqQd2SCaqorY4AKYqI7Q1iR
 github.com/Ira11111/go-grpc-interceptors v1.3.0/go.mod h1:lnlQ3z+42hvsUGtx/EMiybxqzY7nTOhUR7ffg6DB7bU=
 github.com/Ira11111/go-grpc-interceptors v1.4.0 h1:8rvzpMMLFXvlTP5JP21BNVxB7cABqcl0ybzwdYE8mo4=
 github.com/Ira11111/go-grpc-interceptors v1.4.0/go.mod h1:lnlQ3z+42hvsUGtx/EMiybxqzY7nTOhUR7ffg6DB7bU=
+github.com/Ira11111/go-interceptors v1.4.1 h1:Zcqjwx2nwEUghNIK7SNtMB9ZRQTXDVT3S7U5C+6cNxs=
+github.com/Ira11111/go-interceptors v1.4.1/go.mod h1:RTW71Xh4ZBDLxMEtcPl+jKOi2k8/jLb/9Atr6+W9h3A=
 github.com/Ira11111/protos/v4 v4.3.0 h1:jcyrh6cIOwHOd9sUoBQeUPZy2S9+qXttQn+e1NjYEE0=
 github.com/Ira11111/protos/v4 v4.3.0/go.mod h1:XKRo9/pkgrDqun0D+schhaSO3m9toXMP9jMJlIr/NDo=
 github.com/Ira11111/protos/v4 v4.3.1/go.mod h1:XKRo9/pkgrDqun0D+schhaSO3m9toXMP9jMJlIr/NDo=

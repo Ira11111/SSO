@@ -4,7 +4,7 @@ import (
 	authGRPC "AuthJWT/internal/grpc/auth"
 	"AuthJWT/internal/services/auth"
 	"fmt"
-	i "github.com/Ira11111/go-grpc-interceptors/interceptors"
+	i "github.com/Ira11111/go-interceptors/interceptors"
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"
