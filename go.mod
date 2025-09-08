@@ -3,12 +3,13 @@ module AuthJWT
 go 1.23.0
 
 require (
+	github.com/Ira11111/go-interceptors v1.4.1
 	github.com/Ira11111/protos/v4 v4.4.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/golang-jwt/jwt/v5 v5.2.3
-	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/joho/godotenv v1.5.1
+	github.com/ilyakaznacheev/cleanenv v1.4.0
+	github.com/joho/godotenv v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.40.0
@@ -16,8 +17,7 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
-	github.com/Ira11111/go-interceptors v1.4.1 // indirect
+	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

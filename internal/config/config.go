@@ -1,11 +1,13 @@
 package config
 
 import (
-	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/joho/godotenv"
+	"bufio"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
@@ -31,11 +33,42 @@ type DBConfig struct {
 	SSLMode  string `yaml:"ssl_mode"`
 }
 
-func MustLoad() *Config {
-	if err := godotenv.Load(); err != nil {
-		panic("Error loading .env file")
+func loadEnvFromFile(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		value = strings.Trim(value, `"'`)
+
+		os.Setenv(key, value)
 	}
 
+	return scanner.Err()
+}
+
+func MustLoad() *Config {
+	err := loadEnvFromFile(".env")
+	if err != nil {
+		panic(".env not load")
+	}
 	var res string
 	res = os.Getenv("CONFIG_PATH")
 	if res == "" {
