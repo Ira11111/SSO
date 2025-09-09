@@ -1,0 +1,11 @@
+services:
+  sso:
+    build: .
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+    volumes:
+      - ./configs:/usr/local/src/configs

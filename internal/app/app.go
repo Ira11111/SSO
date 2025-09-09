@@ -20,6 +20,7 @@ func New(logger *slog.Logger, g *config.GRPCConfig, st *config.DBConfig, accessT
 	if err != nil {
 		panic("failed to connect to database: " + err.Error())
 	}
+	logger.Info("DB working on", slog.String("Host", st.Host), slog.String("Port", st.Port))
 	// инициализация сервисного слоя
 	authService := auth.New(logger, storage, storage, storage, accessTTl, refTTL) // инициализация обработчика
 	grpcApp := grpcapp.NewApp(logger, authService, g.Port, g.PublicKey)

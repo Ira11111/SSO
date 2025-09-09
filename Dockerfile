@@ -13,7 +13,5 @@ RUN apk --no-cache add make bash
 WORKDIR /usr/local/src
 COPY --from=builder /usr/local/src/bin/sso ./
 
-COPY ./configs ./configs
-COPY .env ./
 EXPOSE 44044
 CMD ["./sso"]

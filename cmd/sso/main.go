@@ -17,7 +17,7 @@ func main() {
 	if logger == nil {
 		panic("logger is nil, check your configuration")
 	}
-	logger.Info("Start application", slog.Any("configs", cnf))
+	logger.Info("Start application")
 
 	// инициализация приложения
 	application := app.New(logger, &cnf.GRPC, &cnf.DB, cnf.AccessTokenTTL, cnf.RefreshTokenTTL)
